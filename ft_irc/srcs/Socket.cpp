@@ -106,7 +106,7 @@ int Socket::Polling(){
     	                pfd[i].fd = AcptSocket;
     	                pfd[i].events = POLLIN;
     	                ClientSockets.push_back(AcptSocket);
-						Welcome(i);
+						Pass(i);
     	                break;
 					}
 				}
