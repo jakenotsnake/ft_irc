@@ -30,5 +30,24 @@ int Socket::Pass(int i){
 
 int Socket::Handler(int i, std::string Mes){
 	if (stats[i].Pass == 0)
-		stats[i].Pass = PassCheck(i, Mes);
+		PassCheck(i, Mes);
+	else 
+		std::cout << Mes << std::endl;
+	return 1;
+}
+
+int Socket::PassCheck(int i, std::string Mes){
+	const char* Message = "Wrong Pass, Try again\n";
+
+	if (Mes.compare(PassW) == 1){
+		stats[i].Pass = 1;
+		send(pfd[i].fd, "Correct!\n", strlen("Correct!\n"), 0);
+	}
+	else {
+		send(pfd[i].fd, Message, strlen(Message), 0);
+		stats[i].Pass = 0;
+	}
+	std::cout << "entered: " << Mes << std::endl;
+	std::cout << "Actual: : " << PassW << std::endl;
+	return 0;
 }

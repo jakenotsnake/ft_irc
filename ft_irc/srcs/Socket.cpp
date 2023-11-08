@@ -24,6 +24,7 @@ Socket::Socket(){
 //Make and set the Socket
 int Socket::MakeSocket()
 {
+	PassW = "HI";
 	ON = 1;
 	//socket creation AF_INET(family, IPv4), Sock_stream(com type, TCP), 0(protocol, internet)
 	if ((Socket_ID = socket(AF_INET, SOCK_STREAM, 0)) < 0){
@@ -125,39 +126,10 @@ int Socket::Polling(){
     	        ClientSockets.erase(std::remove(ClientSockets.begin(), ClientSockets.end(), pfd[i].fd), ClientSockets.end());
             	}
 				//read message
-				else {
-                std::cout << buffer << std::endl;
-				}
+				else
+                	Handler(i, buffer);
         	}	
 		}
 	}
-	return 1;
-}
-
-int	Socket::Welcome(int i){
-	const char* WelcomeMessage = "Welcome to the IRC Server!\n";
-
-	stats[i].Chanel = 0;
-	stats[i].Level = 0;
-	stats[i].Pass = 0;
-	int BytesSent = send(pfd[i].fd, WelcomeMessage, strlen(WelcomeMessage), 0);
-	if (BytesSent < 0) {
-        std::cerr << "Failed to send welcome message to the client." << std::endl;
-    } else {
-        std::cout << "Welcome message sent to the client." << std::endl;
-    }
-	Pass(i);
-	return 1;
-}
-
-int Socket::Pass(int i){
-	const char* Message = "Enter Password: ";
-
-	int BytesSent = send(pfd[i].fd, Message, strlen(Message), 0);
-	if (BytesSent < 0) {
-        std::cerr << "Failed to send welcome message to the client." << std::endl;
-    } else {
-        std::cout << "Welcome message sent to the client." << std::endl;
-    }
 	return 1;
 }

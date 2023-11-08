@@ -22,6 +22,14 @@
 
 const int MAX_CLIENTS = 10;
 
+class	PfdStats{
+public:
+	bool	Pass;
+	int		Chanel;
+	int		Level;
+
+};
+
 class Socket
 {
 public:
@@ -36,6 +44,7 @@ public:
 	int ON;
 	int PollRet;
 	int	Flag;
+	std::string PassW;
 
 	Socket(/* args */);
 	~Socket();
@@ -45,7 +54,8 @@ public:
 	int Polling();
 	int Welcome(int i);
 	int Pass(int i);
-	int Handle(int i, std::string Mes);
+	int Handler(int i, std::string Mes);
+	int	PassCheck(int i, std::string Mes);
 };
 
 class irc
@@ -59,12 +69,6 @@ public:
 	~irc();
 };
 
-class	PfdStats{
-public:
-	bool	Pass;
-	int		Chanel;
-	int		Level;
 
-};
 
 #endif
