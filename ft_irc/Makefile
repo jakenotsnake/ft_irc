@@ -6,7 +6,7 @@
 #    By: jtanner <jtanner@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/07/19 13:11:13 by jtanner           #+#    #+#              #
-#    Updated: 2023/11/08 13:18:16 by jtanner          ###   ########.fr        #
+#    Updated: 2023/11/08 15:29:18 by jtanner          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -23,6 +23,7 @@ FILES = Main \
 		irc\
 		Socket\
 		Handling\
+		SetUp\
 
 SRCS = $(addprefix $(SRCS_DIR), $(addsuffix .cpp, $(FILES)))
 OBJS = $(SRCS:.cpp=.o)
