@@ -35,7 +35,7 @@ int Socket::Handler(int i, std::string Mes){
 	else if(CmdCheck(i, Mes) == 1)
 		return 1;
 	else
-		std::cout << stats[i].NName << Mes << std::endl;
+		std::cout << stats[i].UName << ":" << Mes << std::endl;
 	return 1;
 }
 
