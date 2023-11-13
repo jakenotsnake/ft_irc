@@ -19,22 +19,43 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <sstream>
 
 const int MAX_CLIENTS = 10;
+extern const int BUFFER_SIZE;
+
+class Channel {
+public:
+	std::string name;
+	std::string topic;
+	std::vector<int> users; // using client socket file descriptors as identifiers
+
+	Channel() {} // Default constructor
+	Channel(const std::string &name) : name(name) {}
+	void addUser(int clientFd);
+	void removeUser(int clientFd);
+	void seTopic(const std::string &newTopic);
+	void broadcastMessage(const std::string &message);
+
+	
+
+};
+
 
 class	PfdStats{
 public:
 	bool	Pass;
 	int		Chanel;
 	int		Level;
-	std::string	UName;
-	std::string	NName;
-	
 
 };
 
+
+
+
 class Socket
 {
+	std::string serverPassword;
 public:
 	sockaddr_in SocketAdrs, clientAddr;
 	std::map<int, std::string> partialData;
@@ -47,9 +68,11 @@ public:
 	int ON;
 	int PollRet;
 	int	Flag;
-	std::string PassW;
 
-	Socket(/* args */);
+	
+	std::map<std::string, Channel> channels;
+
+	Socket(const std::string &password);
 	~Socket();
 	int MakeSocket();
 	int	OpenSocket();
@@ -57,11 +80,20 @@ public:
 	int Polling();
 	int Welcome(int i);
 	int Pass(int i);
-	int Handler(int i, std::string Mes);
-	int	PassCheck(int i, std::string Mes);
-	int NickName(int i, std::string Mes);
-	int UserName(int i, std::string Mes);
-	bool	CmdCheck(int i, std::string Mes);
+	// int Handle(int i, std::string Mes);
+
+
+	int Handle(int i);
+	void createChannel(int clientFd, const std::string &channelName);
+	void joinChannel(int clientFd, const std::string &channelName);
+	void leaveChannel(int clientFd, const std::string &channelName);
+	void setServerPassword(const std::string& password) {std::cout<<"password set"<<std::endl;serverPassword = password;}
+	bool validatePassword(int clientFd, const std::string& receivedPassword);
+	void processClientCommand(int clientFd, const std::string& receivedData);
+	void listChannels(int clientFd);
+	void handleClientDisconnection(int clientIndex);
+	void handleReadError(int clientInde);
+	void sendClientMessage(int clientFd, const std::string& message);
 };
 
 class irc
@@ -74,6 +106,10 @@ public:
 	irc(char **args);
 	~irc();
 };
+
+
+
+
 
 
 

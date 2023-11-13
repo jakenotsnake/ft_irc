@@ -6,7 +6,8 @@ irc::irc(char **args){
 	//this->Port = args[1];
 	//this->Pass = args[2];
 	std::cout << "1" << std::endl;
-	Sock = new Socket();
+	Sock = new Socket("1234");
+	// Sock->setServerPassword("1234");
 };
 
 irc::~irc(){
