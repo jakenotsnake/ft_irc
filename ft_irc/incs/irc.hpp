@@ -62,6 +62,8 @@ public:
 	int UserName(int i, std::string Mes);
 	int	setup(int i, std::string Mes);
 	bool	CmdCheck(int i, std::string Mes);
+	int		DirectMessage(int i, std::string Mes);
+	int		DMessage(int i, int c, std::string Mes);
 };
 
 class irc
