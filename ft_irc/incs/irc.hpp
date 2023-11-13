@@ -29,8 +29,7 @@ public:
 	int		Level;
 	std::string	UName;
 	std::string	NName;
-	
-
+	bool step;
 };
 
 class Socket
@@ -61,6 +60,7 @@ public:
 	int	PassCheck(int i, std::string Mes);
 	int NickName(int i, std::string Mes);
 	int UserName(int i, std::string Mes);
+	int	setup(int i, std::string Mes);
 	bool	CmdCheck(int i, std::string Mes);
 };
 
