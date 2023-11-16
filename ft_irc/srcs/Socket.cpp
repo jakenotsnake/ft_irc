@@ -81,64 +81,59 @@ int Socket::OpenSocket(){
 	return (1);
 }
 
-int Socket::Polling(){
-	while(true){
-		//wait for event
-		PollRet = poll(pfd, 10, (60 * 10000));
-		if (PollRet < 0){
-			perror("Poll() failed");
-	   		exit(EXIT_FAILURE);
-			}
-			//checking if event was on listening socket (means new connection)
-		if (pfd[0].revents & POLLIN){
-			//accept incoming connection
-			if ((AcptSocket = accept(pfd[0].fd,(struct sockaddr *)&clientAddr, (socklen_t *)&AdrsLen)) < 0){
-				std::cerr << "Failed to accept connection" << std::endl;
-				return 1;
-				}
-			//loging IP adress of client
-			std::string clientAddress = inet_ntoa(clientAddr.sin_addr);
-			std::cout << "New client connected: " << clientAddress << std::endl;
-			//finding available pfd socket
-			for (int i = 1; i <= MAX_CLIENTS; ++i) {
-					if (pfd[i].fd == -1) {
-						pfd[i].fd = AcptSocket;
-						pfd[i].events = POLLIN;
-						ClientSockets.push_back(AcptSocket);
-						Welcome(i);
-						break;
-					}
-				}
-			}
-		for (int i = 1; i <= MAX_CLIENTS; ++i) {
-			if (pfd[i].fd != -1 && (pfd[i].revents & POLLIN)) {
-				//receive data and hold in buff
-				char buff[BUFFER_SIZE];
-				int bytesRead = recv(pfd[i].fd, buff, BUFFER_SIZE, 0);
-				//convert buff to string
-				std::string buffer(buff);
-				buffer.erase(bytesRead, std::string::npos);
-				//check if client connect is closed
-				if (bytesRead <= 0) {
-				close(pfd[i].fd);
-				pfd[i].fd = -1;
-				ClientSockets.erase(std::remove(ClientSockets.begin(), ClientSockets.end(), pfd[i].fd), ClientSockets.end());
-				}
-				//read message
-				else {
-				std::cout << buffer << std::endl;
-				}
-			}	
-		}
-	}
-	return 1;
+///
+
+bool isValidFd(int fd) {
+    return fcntl(fd, F_GETFL) != -1 || errno != EBADF;
 }
 
+int Socket::Polling() {
+	while(true) {
+		PollRet = poll(pfd, MAX_CLIENTS + 1, (60 * 1000)); // 60 seconds
+		if (PollRet < 0 ) {
+			perror("Poll() failed");
+			exit(EXIT_FAILURE);
+		}
 
+		// New connection handling
+		if(pfd[0].revents & POLLIN) {
+			// Accept incoming connection
+			if ((AcptSocket = accept(pfd[0].fd, (struct sockaddr *)&clientAddr, (socklen_t *)&AdrsLen)) >= 0) {
+				std::cout << "Accepted new client, socket fd: " << AcptSocket << std::endl;
+			} else {
+				std::cerr << "Failed to accept client, error: " << strerror(errno) << std::endl;
+			}
+			// Log IP address of client
+			std::string clientAddress = inet_ntoa(clientAddr.sin_addr);
+			std::cout << "New client connected: " << clientAddress << std::endl;
+			// Send welcome message to the newly connected client
+			const char* WelcomeMessage = "Welcome to the IRC Server! Enter the Password\n ";
+			if(send(AcptSocket, WelcomeMessage, strlen(WelcomeMessage), 0) < 0) {
+				perror("Send failed in Polling()a");
+			}
+			// Find available pfd socket
+			for (int i = 1; i <= MAX_CLIENTS; ++i) {
+				if (pfd[i].fd == -1) {
+					pfd[i].fd = AcptSocket;
+					pfd[i].events = POLLIN;
+					ClientSockets.push_back(AcptSocket);
 
-
-
-///
+					// initialize stats for the new connection
+					stats[i].Pass = false;
+					stats[i].Chanel = 0;
+					stats[i].Level = 0;
+					break;
+				}
+			}
+		}
+		// Data handling for established connections
+		for (int i = 1; i <= MAX_CLIENTS; ++i) {
+			if (pfd[i].fd != -1 && (pfd[i].revents & POLLIN)) {
+				Handle(i); // Process the data from client
+			}
+		}
+	}
+}
 
 
 void Socket::createChannel(int clientFd, const std::string &channelName) {
@@ -147,14 +142,18 @@ void Socket::createChannel(int clientFd, const std::string &channelName) {
 		sendClientMessage(clientFd, "Channel " + channelName + " already exists.\n");
 		return;
 	}
+	// Debug: log channel creation
+	std::cout << "Creating channel " << channelName << std::endl;
 
 	// create a new channel
 	channels.insert(std::make_pair(channelName, Channel(channelName)));
-	// sendClientMessage(clientFd, "Channel " + channelName + " created.\n Type 'join' " + channelName + " to join or type 'commands' to see available commands.\n");
-	// sendClientMessage(clientFd, "Channel created.\n");
+
+	//Debug: channel creation success message
 	std::cout << "Channel " << channelName << " created." << std::endl;
-	const std::string successMessage = "Channel " + channelName + " created.\n";
-	send(clientFd, successMessage.c_str(), successMessage.length(), 0);
+	sendClientMessage(clientFd, "Channel " + channelName + " created.\n Type 'join' " + channelName + " to join or type 'commands' to see available commands.\n");
+	// std::cout << "Channel " << channelName << " created." << std::endl;
+	// const std::string successMessage = "Channel " + channelName + " created.\n";
+	// send(clientFd, successMessage.c_str(), successMessage.length(), 0);
 }
 
 void Socket::joinChannel(int clientFd, const std::string &channelName) {
@@ -198,10 +197,20 @@ std::string trim(const std::string& str) {
 //
 
 void Socket::sendClientMessage(int clientFd, const std::string& message) {
-	if (send(clientFd, message.c_str(), message.length(), 0) < 0){
-		perror("Send failed");
-		// optionally handle error e.g logging 
+
+	std::cout << "Attempting to send message to client " << clientFd << std::endl;
+
+	if (std::find(ClientSockets.begin(), ClientSockets.end(), clientFd) != ClientSockets.end()) {
+		ssize_t bytesSent = send(clientFd, message.c_str(), message.length(), 0);
+		if (bytesSent < 0) {
+			perror("Send failed in SendClientMessage");
+			std::cerr << "Error code: " << errno << "Error message: " << strerror(errno) << std::endl;
+		}
+	} else {
+		std::cerr << "Attempt to send on a closed or invalid socket: " << clientFd << std::endl;
+		return;
 	}
+	
 }
 
 void Socket::listChannels(int clientFd) {
@@ -213,6 +222,11 @@ void Socket::listChannels(int clientFd) {
 }
 
 void Socket::processClientCommand(int clientFd, const std::string& receivedData) {
+	
+	//log the received data
+	std::cout << "Received data: " << receivedData << std::endl;
+
+
 	//split the received data into commands and parameters
 	std::istringstream iss(receivedData);
 	std::vector<std::string> tokens{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
@@ -220,10 +234,15 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData)
 	if (!tokens.empty()) {
 		// handle command based on the first token
 		const std::string& command = tokens[0];
-		if (command == "commands") {
+		// log the parsed command
+		std::cout << "Parsed command: " << command << std::endl;
+
+		if (command == "commands" && tokens.size() == 1) {
 			const std::string commandsList = "Available commands:\ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
 			send(clientFd, commandsList.c_str(), commandsList.length(), 0);
 		} else if (command == "create" && tokens.size() == 2) {
+			//log command processing
+			std::cout << "Processing 'create' command with the channel name: " << tokens[1] << std::endl;
 			createChannel(clientFd, tokens[1]);
 		} else if (command == "create") {
 			sendClientMessage(clientFd, "Incorrect usage. Usage: create <channelName>");
@@ -258,13 +277,17 @@ void Socket::handleReadError(int clientIndex) {
 int Socket::Handle(int i) {
 	char buff[BUFFER_SIZE];
 	memset(buff, 0, BUFFER_SIZE); // to make sure the buffer is empty
-	std::cout<<" Enter password" << std::endl;
+
+	
+
+	// Debug: Indicate waiting for data
+	std::cout<<" Waiting for data..." << std::endl;
 
 	// Wait for data to be available on the socket
-	fd_set read_fds;
-	FD_ZERO(&read_fds);
-	FD_SET(pfd[i].fd, &read_fds);
-	select(pfd[i].fd + 1, &read_fds, NULL, NULL, NULL);
+	// fd_set read_fds;
+	// FD_ZERO(&read_fds);
+	// FD_SET(pfd[i].fd, &read_fds);
+	// select(pfd[i].fd + 1, &read_fds, NULL, NULL, NULL);
 
 	int bytesRead = recv(pfd[i].fd, buff, BUFFER_SIZE - 1, 0); // -1 to leave space for the null terminator
 
@@ -272,21 +295,19 @@ int Socket::Handle(int i) {
 		// Null-terminate the received data and convert it to a string
 		buff[bytesRead] = '\0';
 		std::string receivedData(buff);
+		// Debug: Log received data
+		std::cout << "Raw data received from client " << pfd[i].fd << ": " << receivedData << std::endl;
 
 		// Trim received data to remove leading and trailing spaces
 		receivedData = trim(receivedData);
 
-		if(!stats[i].Pass){
-			//Assume first message after welcome is password
-			stats[i].Pass = validatePassword(pfd[i].fd, receivedData);
-			// send available commands to the user after validating password
-			if(stats[i].Pass) {
-				const char* commands = "Available commands:\ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
-				send(pfd[i].fd, commands, strlen(commands), 0);
-			}
+
+		if (!stats[i].Pass) {
+			// Validate password
+			validatePassword(i, pfd[i].fd, receivedData);
 		} else {
-			// Hanlde other client commands
-			processClientCommand(i, receivedData);
+			// Process commands after successful password entry
+			processClientCommand(pfd[i].fd, receivedData);
 		}
 	} else if (bytesRead == 0) {
 		handleClientDisconnection(i);
@@ -297,30 +318,19 @@ int Socket::Handle(int i) {
 	return bytesRead;
 }
 
-int	Socket::Welcome(int i){
-	const char* WelcomeMessage = "Welcome to the IRC Server! Enter the Password\n ";
-
-	stats[i].Chanel = 0;
-	stats[i].Level = 0;
-	stats[i].Pass = 0;
-	int BytesSent = send(pfd[i].fd, WelcomeMessage, strlen(WelcomeMessage), 0);
-	if (BytesSent < 0) {
-		std::cerr << "Failed to send welcome message to the client." << std::endl;
-	} else {
-		std::cout << "Welcome message sent to the client." << std::endl;
-	}
-	Handle(i);
-	return 1;
-}
 
 
 //
-bool Socket::validatePassword(int clientFd, const std::string& receivedPassword) {
-	std::cout << "Received password: " << receivedPassword << std::endl;
+bool Socket::validatePassword(int i, int clientFd, const std::string& receivedPassword) {
+	// const char* WelcomeMessage = "Welcome to the IRC Server! Enter the Password\n ";
+	// send(clientFd, WelcomeMessage, strlen(WelcomeMessage), 0);
+	// int BytesSent = send(pfd[i].fd, WelcomeMessage, strlen(WelcomeMessage), 0);
+
 	if (receivedPassword == serverPassword) {
-		const char*  successMessage = "Password accepted.\n";
+		const char*  successMessage = "Password accepted.\n Available commands:\ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
 		send(clientFd, successMessage, strlen(successMessage), 0);
-		stats[clientFd].Pass = 1;
+		stats[i].Pass = true;
+
 		return true;
 	} else {
 		const char* errorMessage = "Password incorrect.\n";
