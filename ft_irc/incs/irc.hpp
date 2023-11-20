@@ -26,7 +26,16 @@ extern const int BUFFER_SIZE;
 
 class User {
 public:
+	// constructor with file descriptor and nickname
 	User(int fd, const std::string& nickname) : fileDescriptor(fd), nickname(nickname), isOperator(false) {}
+	
+
+	// constructor that takes file descriptor and sets a default nickname
+	explicit User(int fd) : fileDescriptor(fd), isOperator(false) {
+		std::ostringstream ss;
+		ss << "user" << fd;
+		nickname = ss.str();
+	}
 
 	// Getters and setters
 	int getFileDescriptor() const {return fileDescriptor;}
@@ -34,49 +43,89 @@ public:
 	bool getIsoperator() const {return isOperator;}
 	void setNickname(const std::string& newNickname) {nickname = newNickname;}
 	void setIsOperator(bool status) {isOperator = status;}
+	void onNewConnection(int fileDescriptor);
+
+	bool operator==(const User& other) const {
+		return fileDescriptor == other.fileDescriptor;
+	}
 
 private:
 	int fileDescriptor;
 	std::string nickname;
 	bool isOperator;
+	std::vector<User> userList;
 };
 
 
 class Channel {
+	friend class Socket;
 public:
 	Channel() {} // Default constructor
 	Channel(const std::string& name) : channelName(name), inviteOnly(false),
 		topicRestrictedToOps(false), userLimit(-1) {}
 	
 	void addUser(int clientFd);
-	void removeUser(int clientFd);
-	void setTopic(const User& user, const std::string &newTopic);
-	void broadcastMessage(const std::string &message);
+	void addUser(const User& user);
+	void addUserToChannel(int clientFd);
+	void addUserToChannel(const User& user);
 
+	void removeUser(int clientFd);
+	void removeUser(const User& user);
+	void broadcastMessage(const std::string &message);
+	void removeUserFromChannel(int clientFd);
+	void removeUserFromChannel(const User& user);
+
+	void setTopic(const User& user, const std::string &newTopic);
 	void kickUser(const User& operatorUser, const User& user);
 	void inviteUser(const User& operatorUser, const User& user);
 	void setMode(const User& operatorUser, const std::string& mode);
 	bool isUserInChannel(int clientFd);
 	bool isOperator(int clientFd);
 
+	
+	
+	
+
 
 private:
 	std::string channelName;
 	std::string channeltopic;
-	// std::vector<User> users;
+	std::vector<User> userObjects;
+	std::vector<User> memberList;
 	std::vector<int> users;
 	bool inviteOnly;
 	bool topicRestrictedToOps;
 	int userLimit;
 	std::string channelPassword;
 
-	void setInviteOnly(bool /*status*/) {}
+	void setInviteOnly(bool status);
 	void setTopicRestriction(const User& OperatorUser, bool restriction);
 	void setChannelPasword(const std::string& password);
 	void setOperatorStatus(const std::string& nickname, bool status);
+	// void setOperatorStatus(const User& user, bool status);
 	void setUserLimit(int limit);
+	
 
 
+};
+
+class ServerManagement {
+public:
+	ServerManagement() {}
+	// void setServerPassword(const std::string& password) {serverPassword = password;}
+	bool validatePassword(int clientFd, const std::string& receivedPassword);
+	// void processClientCommand(int clientFd, const std::string& receivedData);
+	// void listChannels(int clientFd);
+	// void handleClientDisconnection(int clientIndex);
+	// void handleReadError(int clientIndex);
+	// void sendClientMessage(int clientFd, const std::string& message);
+	// std::string getNickNameFromClientFd(int clientFd);
+	void addUserToIrc(int clientFd);
+	void removeUserFromIrc(int clientFd);
+
+private: 
+	std::vector<User> UserList;
+	std::map<std::string, Channel> channels;
 };
 
 
@@ -93,6 +142,7 @@ public:
 
 class Socket
 {
+	friend class User;
 	std::string serverPassword;
 public:
 	sockaddr_in SocketAdrs, clientAddr;
@@ -132,7 +182,10 @@ public:
 	void handleClientDisconnection(int clientIndex);
 	void handleReadError(int clientInde);
 	void sendClientMessage(int clientFd, const std::string& message);
+	std::string getNickNameFromClientFd(int clientFd);
+	
 };
+
 
 class irc
 {

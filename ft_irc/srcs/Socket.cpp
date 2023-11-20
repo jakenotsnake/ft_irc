@@ -283,12 +283,6 @@ int Socket::Handle(int i) {
 	// Debug: Indicate waiting for data
 	std::cout<<" Waiting for data..." << std::endl;
 
-	// Wait for data to be available on the socket
-	// fd_set read_fds;
-	// FD_ZERO(&read_fds);
-	// FD_SET(pfd[i].fd, &read_fds);
-	// select(pfd[i].fd + 1, &read_fds, NULL, NULL, NULL);
-
 	int bytesRead = recv(pfd[i].fd, buff, BUFFER_SIZE - 1, 0); // -1 to leave space for the null terminator
 
 	if (bytesRead > 0) {
@@ -300,8 +294,6 @@ int Socket::Handle(int i) {
 
 		// Trim received data to remove leading and trailing spaces
 		receivedData = trim(receivedData);
-
-
 		if (!stats[i].Pass) {
 			// Validate password
 			validatePassword(i, pfd[i].fd, receivedData);
@@ -322,14 +314,12 @@ int Socket::Handle(int i) {
 
 //
 bool Socket::validatePassword(int i, int clientFd, const std::string& receivedPassword) {
-	// const char* WelcomeMessage = "Welcome to the IRC Server! Enter the Password\n ";
-	// send(clientFd, WelcomeMessage, strlen(WelcomeMessage), 0);
-	// int BytesSent = send(pfd[i].fd, WelcomeMessage, strlen(WelcomeMessage), 0);
 
 	if (receivedPassword == serverPassword) {
 		const char*  successMessage = "Password accepted.\n Available commands:\ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
 		send(clientFd, successMessage, strlen(successMessage), 0);
 		stats[i].Pass = true;
+		// User::onNewConnection(pfd[i].fd);
 
 		return true;
 	} else {
