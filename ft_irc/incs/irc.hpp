@@ -183,7 +183,8 @@ public:
 	void handleReadError(int clientInde);
 	void sendClientMessage(int clientFd, const std::string& message);
 	std::string getNickNameFromClientFd(int clientFd);
-	
+	int directMessage(int clientFd, const std::string& receivedData);
+	int	DMessage(int i, int c, std::string& Mes);
 };
 
 

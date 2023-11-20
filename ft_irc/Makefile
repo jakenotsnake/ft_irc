@@ -12,17 +12,19 @@
 
 NAME = Ft_IRC
 CC = c++
-FLAGS = -Wall -Wextra -Werror -g -std=c++11 -Wno-unused-but-set-parameter
+FLAGS = -Wall -Wextra -Werror -g -std=c++98 -Wno-unused-but-set-parameter
 RM = rm -f
 LINKS = -I./includes -pthread -framework OpenGL \
 	   	-framework Appkit
 
 SRCS_DIR = srcs/
 
-FILES = Main \
+FILES = main \
 		irc\
 		Socket \
-		Channel
+		Channel\
+		handling\
+		User\
 
 SRCS = $(addprefix $(SRCS_DIR), $(addsuffix .cpp, $(FILES)))
 OBJS = $(SRCS:.cpp=.o)

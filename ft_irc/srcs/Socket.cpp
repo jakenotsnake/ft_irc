@@ -252,6 +252,8 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData)
 			leaveChannel(clientFd, tokens[1]);
 		} else if (command == "list" && tokens.size() == 1) {
 			listChannels(clientFd);
+		} else if (command == "message" && tokens.size() > 1) {
+			directMessage(clientFd, tokens);
 		} else {
 			const char* errorMessage = "Uknown command or incorrect usage.\n";
 			send(clientFd, errorMessage, strlen(errorMessage), 0);
