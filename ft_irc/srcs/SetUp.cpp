@@ -46,7 +46,5 @@ int	Socket::DMessage(int i, int c, std::string Mes){
 	strcat(text, ": ");
 	strcat(text, Mes.c_str());
 	send(pfd[c].fd, text, strlen(text), 0);
-	std::cout << "|" << Mes << std::endl;
-	std::cout << stats[c].UName << "|" << c << std::endl;
 	return 1;
 }

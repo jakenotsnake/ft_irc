@@ -3,20 +3,21 @@
 const int BUFFER_SIZE = 999;
 
 //Constructor set easy variable;
-Socket::Socket(){
+Socket::Socket(char **args){
 	//struct to hold port/adresses
+	std::cout << args[2] << std::endl;
 	SocketAdrs = sockaddr_in();
-	
+	PassW = " ";
+	PassW = args[2];
+
 	//adress family (IPv4)
 	SocketAdrs.sin_family = AF_INET;
 	//port
-	SocketAdrs.sin_port = htons(6667);
+	SocketAdrs.sin_port = htons(atoi(args[1]));
 	//allowing info to be received from any network
 	SocketAdrs.sin_addr.s_addr = INADDR_ANY;
 	//getting size of SocketAdrs variable
 	AdrsLen = sizeof(SocketAdrs);
-	
-	
 	
 	MakeSocket();
 }
@@ -24,7 +25,6 @@ Socket::Socket(){
 //Make and set the Socket
 int Socket::MakeSocket()
 {
-	PassW = "HI";
 	ON = 1;
 	//socket creation AF_INET(family, IPv4), Sock_stream(com type, TCP), 0(protocol, internet)
 	if ((Socket_ID = socket(AF_INET, SOCK_STREAM, 0)) < 0){

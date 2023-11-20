@@ -48,7 +48,7 @@ public:
 	int	Flag;
 	std::string PassW;
 
-	Socket(/* args */);
+	Socket(char **args);
 	~Socket();
 	int MakeSocket();
 	int	OpenSocket();
