@@ -3,14 +3,18 @@
 const int BUFFER_SIZE = 999;
 
 //Constructor set easy variable;
-Socket::Socket(const std::string &password) : serverPassword(password) {
+Socket::Socket(char** args) {
+
+	SocketAdrs = sockaddr_in();
+//	serverPassword = " ";
+	serverPassword = args[2];
 	//struct to hold port/adresses
 	SocketAdrs = sockaddr_in();
 	
 	//adress family (IPv4)
 	SocketAdrs.sin_family = AF_INET;
 	//port
-	SocketAdrs.sin_port = htons(6667);
+	SocketAdrs.sin_port = htons(atoi(args[1]));
 	//allowing info to be received from any network
 	SocketAdrs.sin_addr.s_addr = INADDR_ANY;
 	//getting size of SocketAdrs variable
@@ -166,7 +170,7 @@ void Socket::joinChannel(int clientFd, const std::string &channelName) {
 		send(clientFd, errMsg.c_str(), errMsg.length(), 0);
 		return;
 	}
-
+	stats[clientFd].channelName = channelName;
 	// Add the client to the channel's member list
 	it->second.addUser(clientFd);
 	std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
@@ -179,7 +183,7 @@ void Socket::leaveChannel(int clientFd, const std::string &channelName) {
 		std::cerr << "channel" << channelName << " does not exist" << std::endl ;
 		return;
 	}
-
+	stats[clientFd].channelName.clear();
 	it->second.removeUser(clientFd);
 	std::cout<< " Client " << clientFd << " left channel " << channelName << std::endl;
 	}
@@ -254,11 +258,19 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData)
 			listChannels(clientFd);
 		} else if (command == "message" && tokens.size() > 1) {
 			directMessage(clientFd, tokens);
+		} else if (command == "UName" && tokens.size() == 2) {
+			UserName(clientFd, tokens[1]);
+		} else if (command == "NName" && tokens.size() == 2) {
+			NickName(clientFd, tokens[1]);
+		} else if (!stats[clientFd].channelName.empty()) {
+			channels[stats[clientFd].channelName].broadcastMessage(receivedData);
+			std::cout << "broadcast funct" << std::endl;
 		} else {
 			const char* errorMessage = "Uknown command or incorrect usage.\n";
 			send(clientFd, errorMessage, strlen(errorMessage), 0);
 		}
 	}
+	tokens.clear();
 }
 
 void Socket::handleClientDisconnection(int clientIndex) {

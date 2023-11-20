@@ -81,7 +81,7 @@ public:
 	void setMode(const User& operatorUser, const std::string& mode);
 	bool isUserInChannel(int clientFd);
 	bool isOperator(int clientFd);
-
+	int	channelNumber;
 	
 	
 	
@@ -134,7 +134,9 @@ public:
 	bool	Pass;
 	int		Chanel;
 	int		Level;
-
+	std::string	UName;
+	std::string	NName;
+	std::string channelName;
 };
 
 
@@ -143,8 +145,8 @@ public:
 class Socket
 {
 	friend class User;
-	std::string serverPassword;
 public:
+	std::string serverPassword;
 	sockaddr_in SocketAdrs, clientAddr;
 	std::map<int, std::string> partialData;
 	pollfd		pfd[20];
@@ -160,7 +162,7 @@ public:
 	
 	std::map<std::string, Channel> channels;
 
-	Socket(const std::string &password);
+	Socket(char** args);
 	~Socket();
 	int MakeSocket();
 	int	OpenSocket();
@@ -183,8 +185,10 @@ public:
 	void handleReadError(int clientInde);
 	void sendClientMessage(int clientFd, const std::string& message);
 	std::string getNickNameFromClientFd(int clientFd);
-	int directMessage(int clientFd, const std::string& receivedData);
-	int	DMessage(int i, int c, std::string& Mes);
+	int directMessage(int clientFd, const std::vector<std::string> Mes);
+	int	DMessage(int i, int c, const std::vector<std::string> Mes);
+	int NickName(int i, std::string Mes);
+	int UserName(int i, std::string Mes);
 };
 
 

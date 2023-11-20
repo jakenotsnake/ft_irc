@@ -32,6 +32,7 @@ void Channel::removeUserFromChannel(const User& user) {
 
 void Channel::broadcastMessage(const std::string &message) {
 	// Send message to all users in the channel
+				std::cout << "broadcast funct" << std::endl;
 	for (std::vector<User>::size_type i = 0; i < userObjects.size(); i++) {
 		send(userObjects[i].getFileDescriptor(), message.c_str(), message.length(), 0);
 	}
