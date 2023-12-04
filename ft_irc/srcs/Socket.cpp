@@ -184,6 +184,7 @@ void Socket::createChannel(int clientFd, const std::string &channelName) {
 Channel* Socket::getChannel(int clientFd) {
     for (std::map<std::string, Channel>::iterator it = channels.begin(); it != channels.end(); ++it) {
         if (it->second.isUserInChannel(getNickNameFromClientFd(clientFd))) {
+            std::cout << "found chanel" << std::endl;
             return &(it->second);
         }
     }
@@ -203,7 +204,8 @@ void Socket::joinChannel(int clientFd, const std::string &channelName) {
     }
 
     // Add the client to the channel's member list
-    it->second.addUser(stats[clientFd].nickname, clientFd);
+    std::string nickname = getNickNameFromClientFd(clientFd);
+    it->second.addUser(nickname, clientFd);
     std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
 }
 

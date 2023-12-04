@@ -3,6 +3,7 @@
 
 // Adding and Removing Users
 void Channel::addUser(const std::string& nickname, int clientFd) {
+	std::cout << "Username :" << nickname << std::endl;
 	// Add client to the channel
 	users[nickname] = clientFd;
 }
