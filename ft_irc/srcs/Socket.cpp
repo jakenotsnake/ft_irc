@@ -205,8 +205,10 @@ void Socket::joinChannel(int clientFd, const std::string &channelName) {
 
     // Add the client to the channel's member list
     std::string nickname = getNickNameFromClientFd(clientFd);
-    it->second.addUser(nickname, clientFd);
-    std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
+    if (it->second.addUser(nickname, clientFd))
+        std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
+    else
+        std::cout << " client " << clientFd << " failed to joined channel " << channelName << std::endl;
 }
 
 void Socket::leaveChannel(int clientFd, const std::string &channelName) {
@@ -364,6 +366,12 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData,
             listChannels(clientFd);
         } else if (command == "members" && tokens.size() == 2) {
             listchannelUsers(clientFd, tokens[1]);
+        } else if (command == "setusername" && tokens.size() == 2) {
+			UserName(clientFd, tokens[1]);
+        } else if (command == "message" && tokens.size() > 1) {
+			directMessage(clientFd, tokens);
+        } else if (command == "topic" && tokens.size() > 1) {
+			settopic1(clientFd, tokens);
         } else if (command == "KICK" && tokens.size() == 3) {
             // tokens[1] = channel name, tokens[2] = nickname
             std::string channelName = tokens[1];
@@ -492,4 +500,50 @@ bool Socket::validatePassword(int i, int clientFd, const std::string& receivedPa
     }
 }
 
+int Socket::directMessage(int clientfd, std::vector<std::string> Mes){
+    for (int c = 1; c < 10; c++){
+		if (Mes[1] == stats[c].UName){
+			return DMessage(clientfd, c, Mes);
+		}
+	}
+	send(clientfd, "User name does not exist\n", strlen("User name does not exist\n"), 0);
+	return 0;
+}
 
+int	Socket::DMessage(int i, int c, std::vector<std::string> Mes){
+	char *text = new char[stats[i].nickname.length() + 1];
+	strcpy(text, stats[i].nickname.c_str());
+
+	strcat(text, ":");
+
+	for (int i = 1; i < (int)Mes.size(); i++){
+		strcat(text, " ");
+        strcat(text, Mes[i].c_str());
+	}
+	strcat(text, "\n");
+	send(c, text, strlen(text), 0);
+	return 1;
+}
+
+int Socket::UserName(int i, std::string Mes){
+	Mes.erase(std::remove(Mes.begin(), Mes.end(), '\n'), Mes.cend());
+	stats[i].UName = Mes;
+	if (stats[i].nickname.empty())
+		stats[i].nickname = Mes;
+	const char* WelcomeMessage = "User Name set\n";
+	std::cout << "Client No." << i << " set UserName to " << Mes << std::endl;
+	send(i, WelcomeMessage, strlen(WelcomeMessage), 0);
+	return 1;
+}
+
+int	Socket::settopic1(int clientFd, std::vector<std::string> Mes){
+    char *text = new char[1000];
+    for (int i = 1; i < (int)Mes.size(); i++){
+        strcat(text, Mes[i].c_str());
+        strcat(text, " ");
+	}
+	strcat(text, "\n");
+    Channel* t = getChannel(clientFd);
+    t->setTopic(clientFd, text);
+    return 1;
+}

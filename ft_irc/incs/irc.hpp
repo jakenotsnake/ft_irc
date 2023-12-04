@@ -32,6 +32,7 @@ public:
 	int		Chanel;
 	int		Level;
 	std::string nickname;
+	std::string UName;
 	int fileDescriptor;
 	// bool isOperator;
 
@@ -62,10 +63,10 @@ class Channel {
 	UserManager* userManager; // pointer to the userManager
 public:
 	Channel() {} // Default constructor
-	Channel(const std::string& name, UserManager* um) : userManager(um), channelName(name),  inviteOnly(false),
-		topicRestrictedToOps(false), userLimit(-1), channelOperator(-1) {}
+	Channel(const std::string& name, UserManager* um) : userManager(um), channelName(name),  channeltopic("Default"), inviteOnly(false),
+		topicRestrictedToOps(false), userLimit(5), channelOperator(-1) {}
 	
-	void addUser(const std::string& nickname, int clientFd);
+	bool addUser(const std::string& nickname, int clientFd);
 	void removeUser(const std::string& nickname);
 	void broadcastMessage(const std::string &senderNickname, const std::string &message);
 	bool isUserInChannel(const std::string& nickname);
@@ -158,7 +159,10 @@ public:
 	void sendClientMessage(int clientFd, const std::string& message);
 	std::string getNickNameFromClientFd(int clientFd);
 	void setNickName(int clientFd, const std::string& nickname, int clientIndex);
-	
+	int directMessage(int clientfd, std::vector<std::string> Mes);	
+	int	DMessage(int i, int c, std::vector<std::string> Mes);
+	int UserName(int i, std::string Mes);
+	int	settopic1(int clientFd, std::vector<std::string> Mes);
 };
 
 

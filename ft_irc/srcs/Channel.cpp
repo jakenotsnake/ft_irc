@@ -2,10 +2,24 @@
 
 
 // Adding and Removing Users
-void Channel::addUser(const std::string& nickname, int clientFd) {
+bool Channel::addUser(const std::string& nickname, int clientFd) {
 	std::cout << "Username :" << nickname << std::endl;
 	// Add client to the channel
+	int i = std::distance(users.begin(), users.end());
+	if (i >= userLimit){
+		send(clientFd, "Error: Too many users in chanel", strlen("Error: Too many users in chanel"), 0);
+		return 0;
+	}
 	users[nickname] = clientFd;
+	char *mes = new char[1000];
+	strcat(mes, "Welcome to \"");
+	strcat(mes, channelName.c_str());
+	strcat(mes, "\" the topic of this channel is: ");
+	strcat(mes, channeltopic.c_str());
+	strcat(mes, "\n");
+	send(clientFd, mes, strlen(mes), 0);
+
+	return 1;
 }
 
 
@@ -205,7 +219,7 @@ void Channel::broadcastMessage(const std::string &senderNickname, const std::str
 	// debug: print inside of the function
 	std::cout << "Inside broadcastMessage()" << std::endl;
 
-	std::string broadcastMessage = senderNickname + ": " + message;
+	std::string broadcastMessage = senderNickname + ": " + message + "\n";
 	for (std::map<std::string, int>::iterator it = users.begin(); it != users.end(); ++it) {
 		send(it->second, broadcastMessage.c_str(), broadcastMessage.length(), 0);
 	}
