@@ -2,94 +2,148 @@
 
 
 // Adding and Removing Users
-void Channel::addUser(int clientFd) {
+void Channel::addUser(const std::string& nickname, int clientFd) {
 	// Add client to the channel
-	users.push_back(clientFd);
-}
-void Channel::addUser(const User& user) {
-	// Add client to the channel
-	userObjects.push_back(user);
+	users[nickname] = clientFd;
 }
 
-void Channel::addUserToChannel(const User& user) {
-	// Add client to the channel
-	memberList.push_back(user);
-}
 
-void Channel::removeUser(int clientFd) {
+void Channel::removeUser(const std::string& nickname) {
 	// remove client from the channel
-	users.erase(std::remove(users.begin(), users.end(), clientFd), users.end());
-}
-void Channel::removeUser(const User& user) {
-	// remove client from the channel
-	userObjects.erase(std::remove(userObjects.begin(), userObjects.end(), user), userObjects.end());
+	users.erase(nickname);
 }
 
-void Channel::removeUserFromChannel(const User& user) {
-	// remove client from the channel
-	memberList.erase(std::remove(memberList.begin(), memberList.end(), user), memberList.end());
-}
+void Channel::listUsers(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside listUsers()" << std::endl;
 
-void Channel::broadcastMessage(const std::string &message) {
-	// Send message to all users in the channel
-	for (std::vector<User>::size_type i = 0; i < userObjects.size(); i++) {
-		send(userObjects[i].getFileDescriptor(), message.c_str(), message.length(), 0);
+	// Send the list of users to the client
+	std::string userList;
+	for (std::map<std::string, int>::iterator it = users.begin(); it != users.end(); ++it) {
+		userList += it->first + "\n";
 	}
+	send(clientFd, userList.c_str(), userList.length(), 0);
 }
 
-// Kicking and inviting users
-void Channel::kickUser(const User& operatorUser, const User& user) {
+void Channel::setChannelOperator(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside setChannelOperator()" << std::endl;
+
+	// Set the channel operator	
+	channelOperator = clientFd;
+	
+}
+
+
+bool Channel::isOperator(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside isOperator()" << std::endl;
+
+	// Check if client is the channel operator
+	if (clientFd == channelOperator) {
+		return true;
+	}
+	return false;
+}
+
+int Channel::getFileDescriptor(const std::string& nickname) {
+	// debug: print inside of the function
+	std::cout << "Inside getFileDescriptor()" << std::endl;
+
+	// Find the user
+	if (userManager) {
+		PfdStats* pfdStats = userManager->getPfdStats(nickname);
+		if (pfdStats) {
+			return pfdStats->getFileDescriptor();
+		}
+	}
+
+	return -1;
+}
+
+bool Channel::isUserInChannel(const std::string& nickname) {
+	// debug: print inside of the function
+	std::cout << "Inside isUserInChannel()" << std::endl;
+
+	// Check if client is in the channel
+	if (users.find(nickname) != users.end()) {
+		return true;
+	}
+	return false;
+
+}
+
+void Channel::kickUser(int clientFd, std::string& nickname) {
+	// debug: print inside of the function
+	std::cout << "Inside kickUser()" << std::endl;
+
 	// Check if operator
-	if (!operatorUser.getIsoperator()) {
-		send(operatorUser.getFileDescriptor(), "You are not an operator of this channel", 40, 0);
+	if (!isOperator(clientFd)) {
+		send(clientFd, "You are not an operator of this channel", 40, 0);
 		return;
 	}
 	// Check if client is in the channel
-	if (!isUserInChannel(user.getFileDescriptor())) {
-		send(operatorUser.getFileDescriptor(), "This client is not in the channel", 40, 0);
+	if (!isUserInChannel(nickname)) {
+		send(clientFd, "This client is not in the channel", 40, 0);
 		return;
 	}
 	// Kick the client
-	send(user.getFileDescriptor(), "You have been kicked from the channel", 40, 0);
-	removeUser(user);
+	send(getFileDescriptor(nickname), "You have been kicked from the channel", 40, 0);
+	removeUser(nickname);
 }
 
-void Channel::inviteUser(const User& operatorUser, const User& user) {
+void Channel::inviteUser(int clientFd, std::string& nickname) {
+	// debug: print inside of the function
+	std::cout << "Inside inviteUser()" << std::endl;
+
 	// Check if operator
-	if (!operatorUser.getIsoperator()) {
-		send(operatorUser.getFileDescriptor(), "You are not an operator of this channel", 40, 0);
+	if (!isOperator(clientFd)) {
+		send(clientFd, "You are not an operator of this channel", 40, 0);
 		return;
 	}
 	// Check if client is in the channel
-	if (isUserInChannel(user.getFileDescriptor())) {
-		send(operatorUser.getFileDescriptor(), "This client is already in the channel", 40, 0);
+	if (isUserInChannel(nickname)) {
+		send(clientFd, "This client is already in the channel", 40, 0);
 		return;
 	}
-	// Invite the client
-	send(user.getFileDescriptor(), "You have been invited to the channel", 40, 0);
-	addUser(user);
+	int targetFd = getFileDescriptor(nickname);
+	if (targetFd != -1) {
+		// invite the client
+		std::string inviteMessage = "You have been invited to the channel " + channelName;
+		send(targetFd, inviteMessage.c_str(), inviteMessage.length(), 0);
+	} else {
+		// notify the operator that the client is not online
+		send(clientFd, "This client is not online", 40, 0);
+	}
 }
 
-// Setting Topic and Mode
-void Channel::setTopic(const User& user, const std::string &newTopic) {
+void Channel::setTopic(int clientFd, const std::string& newTopic) {
+	// debug: print inside of the function
+	std::cout << "Inside setTopic()" << std::endl;
+
 	// Check if operator
-	if (!user.getIsoperator()) {
-		send(user.getFileDescriptor(), "You are not an operator of this channel", 40, 0);
+	if (!isOperator(clientFd)) {
+		send(clientFd, "You are not an operator of this channel", 40, 0);
 		return;
 	}
 	// Set the topic
 	channeltopic = newTopic;
 }
 
-// Private and  Helper Methods
 void Channel::setInviteOnly (bool status) {
+	// debug: print inside of the function
+	std::cout << "Inside setInviteOnly()" << std::endl;
+
 	this->inviteOnly = status;
 }
 
-void Channel::setTopicRestriction (const User& OperatorUser, bool restriction) {
+void Channel::setTopicRestriction (int clientFd, bool restriction) {
+	// debug: print inside of the function
+	std::cout << "Inside setTopicRestriction()" << std::endl;
+
 	// Check if operator
-	if (!OperatorUser.getIsoperator()) {
-		send(OperatorUser.getFileDescriptor(), "You are not an operator of this channel", 40, 0);
+	if (!isOperator(clientFd)) {
+		send(clientFd, "You are not an operator of this channel", 40, 0);
 		return;
 	}
 	// Set the topic restriction
@@ -97,67 +151,62 @@ void Channel::setTopicRestriction (const User& OperatorUser, bool restriction) {
 }
 
 void Channel::setChannelPasword(const std::string& password) {
+	// debug: print inside of the function
+	std::cout << "Inside setChannelPasword()" << std::endl;
+
 	this->channelPassword = password;
 }
 
-void Channel::setOperatorStatus(const std::string& nickname, bool status) {
-	// Find the user
-	for (std::vector<User>::size_type i = 0; i < userObjects.size(); i++) {
-		if (userObjects[i].getNickname() == nickname) {
-			userObjects[i].setIsOperator(status);
-			return;
-		}
-	}
-}
-
-
-
-//  Set/Remove the User Limit to Channel
 void Channel::setUserLimit(int limit) {
+	// debug: print inside of the function
+	std::cout << "Inside setUserLimit()" << std::endl;
+
 	this->userLimit = limit;
 	// add logic to handle the case where the current number of users
 	// exceeds the newly set limit.
-	if (userObjects.size() > static_cast<std::vector<User>::size_type>(limit)) {
+	if (users.size() > static_cast<std::map<std::string, int>::size_type>(limit)) {
 		// Remove users until the limit is reached
-		while (userObjects.size() > static_cast<std::vector<User>::size_type>(limit)) {
-			removeUser(userObjects[0]);
+		while (users.size() > static_cast<std::map<std::string, int>::size_type>(limit)) {
+			removeUser(users.begin()->first);
 		}
 	}
-
 }
 
-
-
-bool Channel::isUserInChannel(int clientFd) {
-	// Check if client is in the channel
-	if (std::find(users.begin(), users.end(), clientFd) != users.end()) {
-		return true;
+void Channel::setMode(int clientFd, const std::string& mode, const std::string& modeParameter) {
+	if (!isOperator(clientFd)) {
+		send(clientFd, "You are not an operator of this channel", 40, 0);
+		return;
 	}
-	return false;
-}
-
-bool Channel::isOperator(int clientFd) {
-	// Check if client is in the channel
-	if (std::find(users.begin(), users.end(), clientFd) != users.end()) {
-		return true;
+	if (mode == "t") {
+		setTopicRestriction(clientFd, modeParameter == "on" ? true : false);
 	}
-	return false;
+	else if (mode == "i") {
+		setInviteOnly(modeParameter == "on" ? true : false);
+	}
+	else if (mode == "l") {
+		setUserLimit(std::stoi(modeParameter));
+	}
+	else if (mode == "k") {
+		setChannelPasword(modeParameter);
+	}
+	else if (mode == "o") {
+		setChannelOperator(getFileDescriptor(modeParameter));
+	}
+	else {
+		send(clientFd, "Invalid mode", 40, 0);
+	}
 }
 
-// void Channel::onNewConnection(int clientFd) {
-// 	User newUser(clientFd);
-// 	// Add the user to the list of users
-// 	userObjects.push_back(newUser);
-// }
 
 
-// void Channel::onNewConnection(int clientFd) {
-// 	// Send welcome message to the newly connected client
-// 	// const char* WelcomeMessage = "Welcome to the IRC Server! Enter the Password\n ";
-// 	// if(send(clientFd, WelcomeMessage, strlen(WelcomeMessage), 0) < 0) {
-// 	// 	perror("Send failed in onNewConnection()");
-// 	// }
-// 	User newUser(clientFd);
-// 	// Add the user to the list of users
-// 	userObjects.push_back(newUser);
-// }
+// Sending Messages
+void Channel::broadcastMessage(const std::string &senderNickname, const std::string &message) {
+	// debug: print inside of the function
+	std::cout << "Inside broadcastMessage()" << std::endl;
+
+	std::string broadcastMessage = senderNickname + ": " + message;
+	for (std::map<std::string, int>::iterator it = users.begin(); it != users.end(); ++it) {
+		send(it->second, broadcastMessage.c_str(), broadcastMessage.length(), 0);
+	}
+}
+

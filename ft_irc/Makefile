@@ -6,7 +6,7 @@
 #    By: josephkiragu <josephkiragu@student.42.f    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/07/19 13:11:13 by jtanner           #+#    #+#              #
-#    Updated: 2023/11/16 12:14:59 by josephkirag      ###   ########.fr        #
+#    Updated: 2023/11/28 22:15:16 by josephkirag      ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,7 +22,8 @@ SRCS_DIR = srcs/
 FILES = Main \
 		irc\
 		Socket \
-		Channel
+		Channel \
+		UserManager
 
 SRCS = $(addprefix $(SRCS_DIR), $(addsuffix .cpp, $(FILES)))
 OBJS = $(SRCS:.cpp=.o)
