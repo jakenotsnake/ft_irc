@@ -17,7 +17,6 @@ Socket::Socket(const std::string &password, UserManager* um) : serverPassword(pa
     AdrsLen = sizeof(SocketAdrs);
     
     
-    
     MakeSocket();
 }
 
@@ -294,6 +293,8 @@ std::string Socket::getNickNameFromClientFd(int clientFd) {
 
 void Socket::setNickName(int clientFd, const std::string& nickname, int clientIndex) {
     std::string oldNickname = getNickNameFromClientFd(clientFd);
+    // check if already in channel
+    Channel *t = getChannel(clientFd);
 
     // check if nickname is already taken
     if (userManager && userManager->getPfdStats(nickname)) {
@@ -310,7 +311,10 @@ void Socket::setNickName(int clientFd, const std::string& nickname, int clientIn
         std::cout << "new file descriptor: " <<userManager->getPfdStats(nickname)->getFileDescriptor() << std::endl;
         userManager->removeUser(oldNickname);
     }
-
+    if (t != nullptr){
+        t->removeUser(oldNickname);
+        t->addUser(nickname, clientFd);
+    }
     const std::string successMessage = "Nickname set to " + nickname + "\n";
     sendClientMessage(clientFd, successMessage);
 }
