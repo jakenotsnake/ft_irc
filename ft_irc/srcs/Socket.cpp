@@ -148,7 +148,7 @@ int Socket::Polling() {
 }
 
 
-void Socket::createChannel(int clientFd, const std::string &channelName) {
+void Socket::createChannel(int clientFd, const std::string &channelName, const std::string &password) {
     //check if channel exists
     if (channels.find(channelName) != channels.end()) {
         sendClientMessage(clientFd, "Channel " + channelName + " already exists.\n");
@@ -173,7 +173,12 @@ void Socket::createChannel(int clientFd, const std::string &channelName) {
     
     // set User who created as channel operator
     it->second.setChannelOperator(clientFd);
-    // it->second.setOperatorStatus(getNickNameFromClientFd(clientFd), true);
+    
+	// set channel password
+	if (!password.empty()) {
+		it->second.setPasswordProtected(true);
+		it->second.setChannelPasword(password);
+	}
 
     //Debug: channel creation success message
     std::cout << "Channel " << channelName << " created." << std::endl;
@@ -191,7 +196,11 @@ Channel* Socket::getChannel(int clientFd) {
 
 }
 
-void Socket::joinChannel(int clientFd, const std::string &channelName) {
+bool Socket::doesChannelExist(const std::string& channelName) {
+	return channels.find(channelName) != channels.end();
+}
+
+void Socket::joinChannel(int clientFd, const std::string &channelName, const std::string &password) {
     // check if the channel exists
     std::map<std::string, Channel>::iterator it = channels.find(channelName);
     if(it == channels.end()) {
@@ -201,6 +210,16 @@ void Socket::joinChannel(int clientFd, const std::string &channelName) {
         send(clientFd, errMsg.c_str(), errMsg.length(), 0);
         return;
     }
+	// check if channel is password protected
+	if (it->second.isPasswordProtected()) {
+		// check if password is correct
+		if (it->second.getChannelPassword() != password) {
+			// send an error message to the client
+			const std::string errMsg = "Incorrect password. Join again with correct password\n";
+			sendClientMessage(clientFd, errMsg);
+			return;
+		}
+	}
 
     // Add the client to the channel's member list
     std::string nickname = getNickNameFromClientFd(clientFd);
@@ -348,7 +367,10 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData,
         std::cout << "Parsed command: " << command << std::endl;
 
         if (command == "commands" && tokens.size() == 1) {
-            const std::string commandsList = "Available commands:\ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
+            const std::string commandsList = "Available commands:\ncreate <channelName> <password> NB: password is optional\n \
+																	join <channelName> <password> NB: enter password if Channel requires\n \
+																	leave <channelName>\n \
+																	list\n";
             send(clientFd, commandsList.c_str(), commandsList.length(), 0);
         } else if (command == "setnickname" && tokens.size() == 2) {
             // log command processing
@@ -356,14 +378,31 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData,
             setNickName(clientFd, tokens[1], clientIndex);
         } else if (command == "setnickname") {
             sendClientMessage(clientFd, "Incorrect usage. Usage: setnickname <nickname>\n");
-        } else if (command == "create" && tokens.size() == 2) {
+        } else if (command == "create" && (tokens.size() == 2 || tokens.size() == 3)) {
             //log command processing
             std::cout << "Processing 'create' command with the channel name: " << tokens[1] << std::endl;
-            createChannel(clientFd, tokens[1]);
+			if (tokens.size() == 2)
+            	createChannel(clientFd, tokens[1], "");
+			else 
+				createChannel(clientFd, tokens[1], tokens[2]);
         } else if (command == "create") {
-            sendClientMessage(clientFd, "Incorrect usage. Usage: create <channelName>\n");
-        } else if (command == "join" && tokens.size() == 2) {
-            joinChannel(clientFd, tokens[1]);
+            sendClientMessage(clientFd, "Incorrect usage. Usage: create <channelName> <password> NB: password is optional\n");
+        } else if (command == "join" && (tokens.size() == 2 || tokens.size() == 3)) {
+			// Check if channel is password protected
+			if (doesChannelExist(tokens[1])) {
+				if (channels[tokens[1]].isPasswordProtected()) {
+					// check if password is provided
+					if (tokens.size() == 3) {
+						joinChannel(clientFd, tokens[1], tokens[2]);
+					} else {
+						// send an error message to the client
+						const std::string errMsg = "Channel " + tokens[1] + " is password protected. Join again with password. \n";
+						sendClientMessage(clientFd, errMsg);
+					}
+				} else {
+					joinChannel(clientFd, tokens[1], "");
+				}
+			}
         } else if (command == "leave" && tokens.size() == 2) {
             leaveChannel(clientFd, tokens[1]);
         } else if (command == "list" && tokens.size() == 1) {
@@ -399,6 +438,20 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData,
             } else {
                 std::cerr << "Channel " << channelName << " does not exist." << std::endl;
             }
+		} else if (command == "MODE" && (tokens.size() == 3 || tokens.size() == 4)) {
+			// tokens[1] = channel name, tokens[2] = mode
+			
+			std::string modeParameter = "";
+			std::string channelName = tokens[1];
+			std::string mode = tokens[2];
+			if (tokens.size() == 4) 
+				modeParameter = tokens[3];
+			// check if channel exists
+			std::map<std::string, Channel>::iterator it = channels.find(channelName);
+			if (it != channels.end()) 
+				it->second.setMode(clientFd, mode, modeParameter);
+			else 
+				std::cerr << "Channel " << channelName << " does not exist." << std::endl;
         } else {
             // If the input is not a command treat is as a channel message
             if (!isRecognizedCommand(command)) {

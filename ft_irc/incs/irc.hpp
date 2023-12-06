@@ -64,7 +64,7 @@ class Channel {
 public:
 	Channel() {} // Default constructor
 	Channel(const std::string& name, UserManager* um) : userManager(um), channelName(name),  channeltopic("Default"), inviteOnly(false),
-		topicRestrictedToOps(false), userLimit(5), channelOperator(-1) {}
+		topicRestrictedToOps(false), userLimit(5), channelOperator(-1), passwordProtected(false) {}
 	
 	bool addUser(const std::string& nickname, int clientFd);
 	void removeUser(const std::string& nickname);
@@ -74,6 +74,8 @@ public:
 	void listUsers(int clientFd);
 	void setChannelOperator(int clientFd);
 	int getFileDescriptor(const std::string& nickname);
+	bool isPasswordProtected() {return passwordProtected;}
+	std::string getChannelPassword() {return channelPassword;}
 
 	// Channel operator functions
 	void kickUser(int clientFd, std::string& nickname);
@@ -84,6 +86,7 @@ public:
 	void setInviteOnly(bool status);
 	void setTopicRestriction(int clientFd, bool restriction);
 	void setChannelPasword(const std::string& password);
+	void setPasswordProtected(bool status);
 	void setUserLimit(int limit);
 	void setMode(int clientFd, const std::string& mode, const std::string& modeParameter);
 
@@ -101,6 +104,7 @@ private:
 	bool topicRestrictedToOps;
 	int userLimit;
 	int channelOperator;
+	bool passwordProtected;
 	std::string channelPassword;
 	
 
@@ -143,8 +147,8 @@ public:
 
 
 	int Handle(int i);
-	void createChannel(int clientFd, const std::string &channelName);
-	void joinChannel(int clientFd, const std::string &channelName);
+	void createChannel(int clientFd, const std::string &channelName,const std::string &password);
+	void joinChannel(int clientFd, const std::string &channelName, const std::string &password);
 	void leaveChannel(int clientFd, const std::string &channelName);
 	Channel* getChannel(int clientFd);
 
@@ -163,6 +167,7 @@ public:
 	int	DMessage(int i, int c, std::vector<std::string> Mes);
 	int UserName(int i, std::string Mes);
 	int	settopic1(int clientFd, std::vector<std::string> Mes);
+	bool doesChannelExist(const std::string& channelName);
 };
 
 

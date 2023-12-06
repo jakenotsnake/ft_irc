@@ -150,6 +150,9 @@ void Channel::setInviteOnly (bool status) {
 	std::cout << "Inside setInviteOnly()" << std::endl;
 
 	this->inviteOnly = status;
+
+	// debug: print the status of inviteOnly
+	std::cout << "inviteOnly: " << inviteOnly << std::endl;
 }
 
 void Channel::setTopicRestriction (int clientFd, bool restriction) {
@@ -163,6 +166,19 @@ void Channel::setTopicRestriction (int clientFd, bool restriction) {
 	}
 	// Set the topic restriction
 	this->topicRestrictedToOps = restriction;
+
+	// debug: print the status of topicRestrictedToOps
+	std::cout << "topicRestrictedToOps: " << topicRestrictedToOps << std::endl;
+}
+
+void Channel::setPasswordProtected(bool status) {
+	// debug: print inside of the function
+	std::cout << "Inside setPasswordProtected()" << std::endl;
+
+	this->passwordProtected = status;
+
+	// debug: print the status of passwordProtected
+	std::cout << "passwordProtected: " << passwordProtected << std::endl;
 }
 
 void Channel::setChannelPasword(const std::string& password) {
@@ -170,6 +186,8 @@ void Channel::setChannelPasword(const std::string& password) {
 	std::cout << "Inside setChannelPasword()" << std::endl;
 
 	this->channelPassword = password;
+	// debug: print the status of channelPassword
+	std::cout << "channelPassword: " << channelPassword << std::endl;
 }
 
 void Channel::setUserLimit(int limit) {
@@ -202,10 +220,10 @@ void Channel::setMode(int clientFd, const std::string& mode, const std::string& 
 		setUserLimit(std::stoi(modeParameter));
 	}
 	else if (mode == "k") {
-		setChannelPasword(modeParameter);
+		setPasswordProtected(modeParameter == "on" ? true : false);
 	}
 	else if (mode == "o") {
-		setChannelOperator(getFileDescriptor(modeParameter));
+		setChannelOperator(clientFd);
 	}
 	else {
 		send(clientFd, "Invalid mode", 40, 0);
