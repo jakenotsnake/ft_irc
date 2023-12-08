@@ -44,9 +44,35 @@ void Channel::setChannelOperator(int clientFd) {
 	// debug: print inside of the function
 	std::cout << "Inside setChannelOperator()" << std::endl;
 
-	// Set the channel operator	
-	channelOperator = clientFd;
+	// Add client to channel operators
+	channelOperators.push_back(clientFd);
 	
+}
+
+int Channel::getChannelOperatorCount() {
+		// return count of items in the vector that contain a file descriptor
+		int count = 0;
+		for (std::vector<int>::size_type i = 0; i < channelOperators.size(); i++) {
+			if (channelOperators[i] != 0) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+void Channel::setNextUserNotOperatorAsOperator() {
+	// debug: print inside of the function
+	std::cout << "Inside setNextUserNotOperatorAsOperator()" << std::endl;
+
+	// Set the next user in the channel as an operator
+	for (std::map<std::string, int>::iterator it = users.begin(); it != users.end(); ++it) {
+		if (!isOperator(it->second)) {
+			setChannelOperator(it->second);
+			// debug: print the nickname of the user that was set as an operator
+			std::cout << "set " << it->first << " as an operator" << std::endl;
+			return;
+		}
+	}
 }
 
 
@@ -54,9 +80,11 @@ bool Channel::isOperator(int clientFd) {
 	// debug: print inside of the function
 	std::cout << "Inside isOperator()" << std::endl;
 
-	// Check if client is the channel operator
-	if (clientFd == channelOperator) {
-		return true;
+	// Check if client is in channel operators
+	for (std::vector<int>::iterator it = channelOperators.begin(); it != channelOperators.end(); ++it) {
+		if (*it == clientFd) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -132,18 +160,41 @@ void Channel::inviteUser(int clientFd, std::string& nickname) {
 	}
 }
 
+void Channel::removeChannelOperator(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside removeChannelOperator()" << std::endl;
+
+	// Remove client from channel operators
+	for (std::vector<int>::iterator it = channelOperators.begin(); it != channelOperators.end(); ++it) {
+		if (*it == clientFd) {
+			channelOperators.erase(it);
+			return;
+		}
+	}
+}
+
+
 void Channel::setTopic(int clientFd, const std::string& newTopic) {
 	// debug: print inside of the function
 	std::cout << "Inside setTopic()" << std::endl;
 
-	// Check if operator
-	if (!isOperator(clientFd)) {
-		send(clientFd, "You are not an operator of this channel", 40, 0);
-		return;
+	// Check if channel is topic restricted
+	if (topicRestrictedToOps) {
+		// Check if operator
+		if (!isOperator(clientFd)) {
+			send(clientFd, "You are not an operator of this channel", 40, 0);
+			return;
+		} else {
+			// Set the topic
+			channeltopic = newTopic;
+		}
+	} else {
+		// Set the topic
+		channeltopic = newTopic;
 	}
-	// Set the topic
-	channeltopic = newTopic;
+
 }
+
 
 void Channel::setInviteOnly (bool status) {
 	// debug: print inside of the function

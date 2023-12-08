@@ -64,7 +64,7 @@ class Channel {
 public:
 	Channel() {} // Default constructor
 	Channel(const std::string& name, UserManager* um) : userManager(um), channelName(name),  channeltopic("Default"), inviteOnly(false),
-		topicRestrictedToOps(false), userLimit(5), channelOperator(-1), passwordProtected(false) {}
+		topicRestrictedToOps(true), userLimit(5), channelOperators(1), passwordProtected(false) {}
 	
 	bool addUser(const std::string& nickname, int clientFd);
 	void removeUser(const std::string& nickname);
@@ -75,7 +75,9 @@ public:
 	void setChannelOperator(int clientFd);
 	int getFileDescriptor(const std::string& nickname);
 	bool isPasswordProtected() {return passwordProtected;}
+	bool isTopicRestrictedToOps() {return topicRestrictedToOps;}
 	std::string getChannelPassword() {return channelPassword;}
+	// void setTopicOperator(int clientFd);
 
 	// Channel operator functions
 	void kickUser(int clientFd, std::string& nickname);
@@ -90,8 +92,14 @@ public:
 	void setUserLimit(int limit);
 	void setMode(int clientFd, const std::string& mode, const std::string& modeParameter);
 
-	// 
-	
+	// getters
+	std::vector<int> getChannelOperators() {return channelOperators;}
+	int getChannelOperatorCount();
+	std::map<std::string, int> getUsers() {return users;}
+
+	// utility functions
+	void removeChannelOperator(int clientFd);
+	void setNextUserNotOperatorAsOperator();
 	
 
 
@@ -103,9 +111,12 @@ private:
 	bool inviteOnly;
 	bool topicRestrictedToOps;
 	int userLimit;
-	int channelOperator;
+	std::vector<int> channelOperators;
+	// int channelOperator;
 	bool passwordProtected;
 	std::string channelPassword;
+	// vector of users allowed to have channel operator privileges
+	
 	
 
 };

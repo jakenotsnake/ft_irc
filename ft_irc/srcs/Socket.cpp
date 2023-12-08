@@ -230,17 +230,64 @@ void Socket::joinChannel(int clientFd, const std::string &channelName, const std
 }
 
 void Socket::leaveChannel(int clientFd, const std::string &channelName) {
-    // check if channel exists
+
+	// check if channel exists
     std::map<std::string, Channel>::iterator it = channels.find(channelName);
     if (it == channels.end()) {
         std::cerr << "channel" << channelName << " does not exist" << std::endl ;
         return;
     }
+	// get nickname of user leaving
+	std::string nickname = getNickNameFromClientFd(clientFd);
 
-    it->second.removeUser(stats[clientFd].nickname);
-    std::cout<< " Client " << clientFd << " left channel " << channelName << std::endl;
+	// check if user is a channel operator
+	if (it->second.isOperator(clientFd)) {
+		// if not the only operator, remove from channel operators
+		if (it->second.getChannelOperatorCount() > 1) {
+			// send message to all users in channel of user leaving
+			std::string leaveMessage = nickname + " left the channel.\n";
+			it->second.broadcastMessage(nickname, leaveMessage);
+			std::cout<< " Client " << clientFd << " left channel " << channelName << std::endl;
+			// remove user as operator
+			it->second.removeChannelOperator(clientFd);
+			// remove user from channel
+			it->second.removeUser(getNickNameFromClientFd(clientFd));
+			
+		} else {
+			// if only operator and channel has other users, assign the next user as operator
+			if (it->second.getUsers().size() > 1) {
+				// send message to all users in channel of user leaving
+				std::string leaveMessage = nickname + " left the channel.\n";
+				it->second.broadcastMessage(nickname, leaveMessage);
+				std::cout<< " Client " << clientFd << " left channel " << channelName << std::endl;
+				// set next user not operatr as operator
+				it->second.setNextUserNotOperatorAsOperator();
+				// remoe user as operator
+				it->second.removeChannelOperator(clientFd);
+				// remove user from channel
+				it->second.removeUser(nickname);
+				
+			} else {
+				// if only operator and channel has no other users, delete channel
+				channels.erase(it);
+			}
+		}
+	} else {
+		// if not channel operator and channel has other users, remove user from channel
+		if (it->second.getUsers().size() > 1) {
+			
+			// send message to all users in channel of user leaving
+			std::string leaveMessage = nickname + " left the channel.\n";
+			it->second.broadcastMessage(nickname, leaveMessage);
+			std::cout<< " Client " << clientFd << " left channel " << channelName << std::endl;
+			// remove user from channel
+			it->second.removeUser(nickname);
+		} else {
+			// if not channel operator and channel has no other users, delete channel
+			channels.erase(it);
+		}
     }
-
+}
 
 void Socket::listchannelUsers(int clientFd, const std::string& channelName) {
     // check if channel exists
@@ -594,13 +641,51 @@ int Socket::UserName(int i, std::string Mes){
 }
 
 int	Socket::settopic1(int clientFd, std::vector<std::string> Mes){
-    char *text = new char[1000];
-    for (int i = 1; i < (int)Mes.size(); i++){
-        strcat(text, Mes[i].c_str());
-        strcat(text, " ");
+	//check if channel exists
+	if (!doesChannelExist(Mes[1])) {
+		sendClientMessage(clientFd, "Channel " + Mes[1] + " does not exist.\n");
+		return 0;
 	}
-	strcat(text, "\n");
-    Channel* t = getChannel(clientFd);
-    t->setTopic(clientFd, text);
-    return 1;
+	//check if user is in channel
+	if (!channels[Mes[1]].isUserInChannel(getNickNameFromClientFd(clientFd))) {
+		sendClientMessage(clientFd, "You are not in channel " + Mes[1] + ".\n");
+		return 0;
+	}
+	//check if change of channel topic is restricted to channel operator
+	if (!channels[Mes[1]].isTopicRestrictedToOps()) {
+		char *text = new char[1000];
+		for (int i = 2; i < (int)Mes.size(); i++){
+			strcat(text, Mes[i].c_str());
+			strcat(text, " ");
+		}
+		strcat(text, "\n");
+		Channel* t = getChannel(clientFd);
+		t->setTopic(clientFd, text);
+		// send message to all users in channel of topic change
+		std::string topicChangeMessage = "Topic changed to: " + std::string(text);
+		std::string nickname = getNickNameFromClientFd(clientFd);
+		t->broadcastMessage(nickname, topicChangeMessage);
+		return 1;
+	} else {
+		//check if user is channel operator
+		if (channels[Mes[1]].isOperator(clientFd)) {
+			char *text = new char[1000];
+			for (int i = 2; i < (int)Mes.size(); i++){
+				strcat(text, Mes[i].c_str());
+				strcat(text, " ");
+			}
+			strcat(text, "\n");
+			Channel* t = getChannel(clientFd);
+			t->setTopic(clientFd, text);
+			// send message to all users in channel of topic change
+			std::string topicChangeMessage = "Topic changed to: " + std::string(text);
+			std::string nickname = getNickNameFromClientFd(clientFd);
+			t->broadcastMessage(nickname, topicChangeMessage);
+
+			return 1;
+		} else {
+			sendClientMessage(clientFd, "Only channel operator can change the topic.\n");
+			return 0;
+		}
+	}
 }
