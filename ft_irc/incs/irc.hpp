@@ -100,6 +100,9 @@ public:
 	// utility functions
 	void removeChannelOperator(int clientFd);
 	void setNextUserNotOperatorAsOperator();
+	bool isUserInvited(int clientFd);
+	bool isInviteOnly() {return inviteOnly;}
+	void removeUserFromInviteList(int clientFd);
 	
 
 
@@ -112,10 +115,10 @@ private:
 	bool topicRestrictedToOps;
 	int userLimit;
 	std::vector<int> channelOperators;
-	// int channelOperator;
 	bool passwordProtected;
 	std::string channelPassword;
-	// vector of users allowed to have channel operator privileges
+	// vector of invitees
+	std::vector<int> inviteList;
 	
 	
 

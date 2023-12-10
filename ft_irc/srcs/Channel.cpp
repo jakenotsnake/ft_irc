@@ -154,6 +154,9 @@ void Channel::inviteUser(int clientFd, std::string& nickname) {
 		// invite the client
 		std::string inviteMessage = "You have been invited to the channel " + channelName;
 		send(targetFd, inviteMessage.c_str(), inviteMessage.length(), 0);
+
+		// Add user to invite list
+		inviteList.push_back(targetFd);
 	} else {
 		// notify the operator that the client is not online
 		send(clientFd, "This client is not online", 40, 0);
@@ -171,6 +174,32 @@ void Channel::removeChannelOperator(int clientFd) {
 			return;
 		}
 	}
+}
+
+void Channel::removeUserFromInviteList(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside removeUserFromInviteList()" << std::endl;
+
+	// Remove client from invite list
+	for (std::vector<int>::iterator it = inviteList.begin(); it != inviteList.end(); ++it) {
+		if (*it == clientFd) {
+			inviteList.erase(it);
+			return;
+		}
+	}
+}
+
+bool Channel::isUserInvited(int clientFd) {
+	// debug: print inside of the function
+	std::cout << "Inside isUserInvited()" << std::endl;
+
+	// Check if client is in invite list
+	for (std::vector<int>::iterator it = inviteList.begin(); it != inviteList.end(); ++it) {
+		if (*it == clientFd) {
+			return true;
+		}
+	}
+	return false;
 }
 
 

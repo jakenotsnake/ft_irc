@@ -210,23 +210,76 @@ void Socket::joinChannel(int clientFd, const std::string &channelName, const std
         send(clientFd, errMsg.c_str(), errMsg.length(), 0);
         return;
     }
-	// check if channel is password protected
-	if (it->second.isPasswordProtected()) {
-		// check if password is correct
-		if (it->second.getChannelPassword() != password) {
-			// send an error message to the client
-			const std::string errMsg = "Incorrect password. Join again with correct password\n";
-			sendClientMessage(clientFd, errMsg);
-			return;
-		}
+	// check if user is already in channel
+	if (it->second.isUserInChannel(getNickNameFromClientFd(clientFd))) {
+		// send an error message to the client
+		const std::string errMsg = "You are already in channel " + channelName + "\n";
+		send(clientFd, errMsg.c_str(), errMsg.length(), 0);
+		return;
+	}
+	
+
+	// check is channel is invite only
+	if (it->second.isInviteOnly()) {
+		// check if user is invited
+		if (it->second.isUserInvited(clientFd)) {
+			// Check if channel is password protected
+			if (it->second.isPasswordProtected()) {
+				// check if password is correct
+				if (it->second.getChannelPassword() == password) {
+					// Add the client to the channel's member list
+					std::string nickname = getNickNameFromClientFd(clientFd);
+					if (it->second.addUser(nickname, clientFd)){
+						std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
+						// remove user from invite list
+						it->second.removeUserFromInviteList(clientFd);
+						return;
+						}
+					else {
+						std::cout << " client " << clientFd << " failed to joined channel " << channelName << std::endl;
+						return;
+					}
+				} else {
+					// send an error message to the client
+					const std::string errMsg = "Incorrect password. Join again with correct password\n";
+					send(clientFd, errMsg.c_str(), errMsg.length(), 0);
+					return;
+				}
+			}
+		} else if (it->second.isPasswordProtected() && !it->second.isUserInvited(clientFd)) {
+			// check if password is correct
+			if (it->second.getChannelPassword() == password) {
+				// Add the client to the channel's member list
+				std::string nickname = getNickNameFromClientFd(clientFd);
+				if (it->second.addUser(nickname, clientFd)){
+					std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
+					return;
+					}
+				else {
+					std::cout << " client " << clientFd << " failed to joined channel " << channelName << std::endl;
+					return;
+					}
+			} else {
+				// send an error message to the client
+				const std::string errMsg = "Incorrect password. Join again with correct password\n";
+				send(clientFd, errMsg.c_str(), errMsg.length(), 0);
+				return;
+			}
+			} else {
+				// if channel is not invite only and not password protected, add user to channel
+				std::string nickname = getNickNameFromClientFd(clientFd);
+				if (it->second.addUser(nickname, clientFd)){
+					std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
+					return;
+					}
+				else {
+					std::cout << " client " << clientFd << " failed to joined channel " << channelName << std::endl;
+					return;
+					}
+			}
+
 	}
 
-    // Add the client to the channel's member list
-    std::string nickname = getNickNameFromClientFd(clientFd);
-    if (it->second.addUser(nickname, clientFd))
-        std::cout << " client " << clientFd << " joined channel " << channelName << std::endl;
-    else
-        std::cout << " client " << clientFd << " failed to joined channel " << channelName << std::endl;
 }
 
 void Socket::leaveChannel(int clientFd, const std::string &channelName) {
