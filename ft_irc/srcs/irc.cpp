@@ -2,12 +2,11 @@
 
 irc::irc(char **args){
     std::cout << "Starting server..." << std::endl;
-    args = NULL;
-    //this->Port = args[1];
-    //this->Pass = args[2];
-    std::cout << "1" << std::endl;
+
+    std::string Port = args[1];
+    std::string Pass = args[2];
 	UserM = new UserManager();
-    Sock = new Socket("1234", UserM);
+    Sock = new Socket(Port, Pass, UserM);
     // Sock->setServerPassword("1234");
 };
 

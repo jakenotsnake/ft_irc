@@ -3,14 +3,14 @@
 const int BUFFER_SIZE = 999;
 
 //Constructor set easy variable;
-Socket::Socket(const std::string &password, UserManager* um) : serverPassword(password), userManager(um) {
+Socket::Socket(const std::string port, const std::string password, UserManager* um) : serverPassword(password), userManager(um) {
     //struct to hold port/adresses
     SocketAdrs = sockaddr_in();
     
     //adress family (IPv4)
     SocketAdrs.sin_family = AF_INET;
     //port
-    SocketAdrs.sin_port = htons(6667);
+    SocketAdrs.sin_port = htons(stoi(port));
     //allowing info to be received from any network
     SocketAdrs.sin_addr.s_addr = INADDR_ANY;
     //getting size of SocketAdrs variable
@@ -218,7 +218,7 @@ void Socket::joinChannel(int clientFd, const std::string &channelName, const std
 		return;
 	}
 	
-
+    std::cout << "1" << std::endl;
 	// check is channel is invite only
 	if (it->second.isInviteOnly()) {
 		// check if user is invited
@@ -246,8 +246,11 @@ void Socket::joinChannel(int clientFd, const std::string &channelName, const std
 					return;
 				}
 			}
-		} else if (it->second.isPasswordProtected() && !it->second.isUserInvited(clientFd)) {
+        }
+    
+		} else if (it->second.isPasswordProtected() && !it->second.isInviteOnly()) {
 			// check if password is correct
+            std::cout << "2" << std::endl;
 			if (it->second.getChannelPassword() == password) {
 				// Add the client to the channel's member list
 				std::string nickname = getNickNameFromClientFd(clientFd);
@@ -279,8 +282,6 @@ void Socket::joinChannel(int clientFd, const std::string &channelName, const std
 			}
 
 	}
-
-}
 
 void Socket::leaveChannel(int clientFd, const std::string &channelName) {
 
@@ -467,10 +468,17 @@ void Socket::processClientCommand(int clientFd, const std::string& receivedData,
         std::cout << "Parsed command: " << command << std::endl;
 
         if (command == "commands" && tokens.size() == 1) {
-            const std::string commandsList = "Available commands:\ncreate <channelName> <password> NB: password is optional\n \
-																	join <channelName> <password> NB: enter password if Channel requires\n \
-																	leave <channelName>\n \
-																	list\n";
+            const std::string commandsList = "Available commands:\n create <channelName> <password> NB: password is optional\n \
+join <channelName> <password> NB: enter password if Channel requires\n \
+leave <channelName>\n \
+list\n \
+message <Username> <message>\n \
+setusername <Desired Username>\n \
+setnickname <Desired Nickname>\n \
+members <channelName>\n \
+topic <channelName> <topic> (Operator Only)\n \
+KICK <channelName> <Nickname> (Operator Only)\n \
+INVITE <channelName> <Nickname> (Operator Only)\n \ ";
             send(clientFd, commandsList.c_str(), commandsList.length(), 0);
         } else if (command == "setnickname" && tokens.size() == 2) {
             // log command processing
@@ -645,7 +653,17 @@ int Socket::Handle(int i) {
 bool Socket::validatePassword(int i, int clientFd, const std::string& receivedPassword) {
 
     if (receivedPassword == serverPassword) {
-        const char*  successMessage = "Password accepted.\n Available commands:\n setnickname <nickname> \ncreate <channelName>\njoin <channelName>\nleave <channelName>\nlist\n";
+        const char*  successMessage = "Available commands:\n create <channelName> <password> NB: password is optional\n \
+join <channelName> <password> NB: enter password if Channel requires\n \
+leave <channelName>\n \
+list\n \
+message <Username> <message>\n \
+setusername <Desired Username>\n \
+setnickname <Desired Nickname>\n \
+members <channelName>\n \
+topic <channelName> <topic> (Operator Only)\n \
+KICK <channelName> <Nickname> (Operator Only)\n \
+INVITE <channelName> <Nickname> (Operator Only)\n \ ";
         send(clientFd, successMessage, strlen(successMessage), 0);
         stats[i].Pass = true;
 
@@ -727,7 +745,6 @@ int	Socket::settopic1(int clientFd, std::vector<std::string> Mes){
 				strcat(text, Mes[i].c_str());
 				strcat(text, " ");
 			}
-			strcat(text, "\n");
 			Channel* t = getChannel(clientFd);
 			t->setTopic(clientFd, text);
 			// send message to all users in channel of topic change

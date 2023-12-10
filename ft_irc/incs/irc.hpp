@@ -149,7 +149,7 @@ public:
 	
 	std::map<std::string, Channel> channels;
 
-	Socket(const std::string &password, UserManager* um);
+	Socket(const std::string port, const std::string password, UserManager* um);
 	~Socket();
 	int MakeSocket();
 	int	OpenSocket();

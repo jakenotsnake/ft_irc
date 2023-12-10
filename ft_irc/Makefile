@@ -3,16 +3,16 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: josephkiragu <josephkiragu@student.42.f    +#+  +:+       +#+         #
+#    By: jtanner <jtanner@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/07/19 13:11:13 by jtanner           #+#    #+#              #
-#    Updated: 2023/12/08 17:05:55 by josephkirag      ###   ########.fr        #
+#    Updated: 2023/12/10 13:52:37 by jtanner          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = Ft_IRC
 CC = c++
-FLAGS = -Wall -Wextra -Werror -g -std=c++11 -Wno-unused-but-set-parameter
+FLAGS = -Wall -Wextra -Werror -g -std=c++11 
 RM = rm -f
 LINKS = -I./includes -pthread -framework OpenGL \
 	   	-framework Appkit
