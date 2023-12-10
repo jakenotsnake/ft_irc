@@ -478,7 +478,7 @@ setnickname <Desired Nickname>\n \
 members <channelName>\n \
 topic <channelName> <topic> (Operator Only)\n \
 KICK <channelName> <Nickname> (Operator Only)\n \
-INVITE <channelName> <Nickname> (Operator Only)\n \ ";
+INVITE <channelName> <Nickname> (Operator Only)\n ";
             send(clientFd, commandsList.c_str(), commandsList.length(), 0);
         } else if (command == "setnickname" && tokens.size() == 2) {
             // log command processing
@@ -663,7 +663,7 @@ setnickname <Desired Nickname>\n \
 members <channelName>\n \
 topic <channelName> <topic> (Operator Only)\n \
 KICK <channelName> <Nickname> (Operator Only)\n \
-INVITE <channelName> <Nickname> (Operator Only)\n \ ";
+INVITE <channelName> <Nickname> (Operator Only)\n ";
         send(clientFd, successMessage, strlen(successMessage), 0);
         stats[i].Pass = true;
 
