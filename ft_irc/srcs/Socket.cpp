@@ -590,6 +590,8 @@ INVITE <channelName> <Nickname> (Operator Only)\n ";
 
 void Socket::handleClientDisconnection(int clientIndex) {
     std::cout << "client "<<pfd[clientIndex].fd<<" disconnected." << std::endl;
+    Channel* Temp = getChannel(stats[clientIndex].getFileDescriptor());
+    Temp->removeUser(getNickNameFromClientFd(stats[clientIndex].getFileDescriptor()));
     close(pfd[clientIndex].fd);
     pfd[clientIndex].fd = -1;
     ClientSockets.erase(std::remove(ClientSockets.begin(), ClientSockets.end(), pfd[clientIndex].fd), ClientSockets.end());
