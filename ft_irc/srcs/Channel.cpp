@@ -283,6 +283,11 @@ void Channel::setUserLimit(int limit) {
 			removeUser(users.begin()->first);
 		}
 	}
+	// send message to all channel operators that the limit has been set
+	std::string message = "The user limit has been set to " + std::to_string(limit);
+	for (std::vector<int>::iterator it = channelOperators.begin(); it != channelOperators.end(); ++it) {
+		send(*it, message.c_str(), message.length(), 0);
+	}
 }
 
 void Channel::setMode(int clientFd, const std::string& mode, const std::string& modeParameter) {
@@ -304,6 +309,9 @@ void Channel::setMode(int clientFd, const std::string& mode, const std::string& 
 	}
 	else if (mode == "o") {
 		setChannelOperator(clientFd);
+	}
+	else if (mode == "l") {
+		setUserLimit(std::stoi(modeParameter));
 	}
 	else {
 		send(clientFd, "Invalid mode", 40, 0);

@@ -547,7 +547,7 @@ INVITE <channelName> <Nickname> (Operator Only)\n ";
                 std::cerr << "Channel " << channelName << " does not exist." << std::endl;
             }
 		} else if (command == "MODE" && (tokens.size() == 3 || tokens.size() == 4)) {
-			// tokens[1] = channel name, tokens[2] = mode
+			// tokens[1] = channel name, tokens[2] = mode, tokens[3] = mode parameter
 			
 			std::string modeParameter = "";
 			std::string channelName = tokens[1];
